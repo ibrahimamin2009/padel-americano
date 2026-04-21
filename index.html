@@ -25,6 +25,9 @@
                 <span class="text-2xl">🎾</span>
                 <h1 class="text-xl font-bold tracking-tight">Padel Americano</h1>
             </div>
+            <button id="btn-reset-event" onclick="resetEvent()" class="hidden text-sm font-bold bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors">
+                New Event
+            </button>
         </div>
         
         <!-- Navigation Tabs (Hidden initially) -->
@@ -176,6 +179,51 @@
         let rounds = [];
         let currentTab = 'players';
 
+        // --- STATE MANAGEMENT ---
+        function saveState() {
+            if (!config.isStarted) return;
+            const state = { config, players, rounds, currentTab };
+            localStorage.setItem('padel_americano_state', JSON.stringify(state));
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('padel_americano_state');
+            if (saved) {
+                const state = JSON.parse(saved);
+                config = state.config || config;
+                players = state.players || [];
+                rounds = state.rounds || [];
+                
+                if (config.isStarted) {
+                    document.getElementById('nav-tabs').classList.remove('hidden');
+                    document.getElementById('btn-reset-event').classList.remove('hidden');
+                    
+                    const subtitle = document.getElementById('leaderboard-subtitle');
+                    if (config.isUnlimited) {
+                        subtitle.innerText = `Unlimited Points - Play out matches`;
+                    } else {
+                        subtitle.innerText = `Race to ${config.targetPoints} points per match`;
+                    }
+                    
+                    if (config.format === 'mixed') {
+                        document.getElementById('new-player-gender').classList.remove('hidden');
+                    }
+                    
+                    renderPlayers();
+                    switchTab(state.currentTab || 'players');
+                }
+            }
+        }
+
+        function resetEvent() {
+            if(confirm("Are you sure you want to reset all progress and start a new tournament?")) {
+                localStorage.removeItem('padel_americano_state');
+                location.reload();
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadState);
+
         // --- CORE LOGIC ---
 
         function toggleCustomPoints() {
@@ -225,6 +273,9 @@
                 }
             }
             
+            document.getElementById('btn-reset-event').classList.remove('hidden');
+            saveState();
+            
             renderPlayers();
             switchTab('players');
             showToast("Event Started! Check the roster.");
@@ -238,6 +289,8 @@
 
             players.push({ id: generateId(), name: name, gender: genderInput.value, active: true, played: 0 });
             input.value = '';
+            
+            saveState();
             renderPlayers();
             
             if (rounds.length > 0) {
@@ -259,6 +312,7 @@
                 players = players.filter(p => p.id !== id);
             }
             
+            saveState();
             renderPlayers();
             
             // Re-evaluate if we need to block the tournament generator
@@ -527,6 +581,7 @@
                 resting: resting.map(p => p.id)
             });
 
+            saveState();
             renderMatches();
             switchTab('matches');
             showToast(`Round ${rounds.length} Generated!`);
@@ -606,6 +661,7 @@
             const match = round.matches.find(m => m.id === matchId);
             if(team === 1) match.score1 = value;
             if(team === 2) match.score2 = value;
+            saveState();
         }
 
         function toggleMatchLock(roundNum, matchId) {
@@ -618,6 +674,8 @@
             }
             
             match.locked = !match.locked;
+            
+            saveState();
             updateLeaderboardStats();
             renderMatches();
         }
@@ -734,6 +792,9 @@
             });
 
             document.getElementById(`view-${tab}`).classList.remove('hidden');
+            
+            currentTab = tab;
+            saveState();
             
             if(tab === 'leaderboard') updateLeaderboardStats();
             if(tab === 'matches') renderMatches();
