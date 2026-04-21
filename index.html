@@ -25,17 +25,23 @@
                 <span class="text-2xl">🎾</span>
                 <h1 class="text-xl font-bold tracking-tight">Padel Americano</h1>
             </div>
-            <button id="btn-reset-event" onclick="resetEvent()" class="hidden text-sm font-bold bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors">
-                New Event
-            </button>
+            <div class="flex gap-2">
+                <button id="btn-share-event" onclick="copyShareLink()" class="hidden text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg transition-colors flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                    Share
+                </button>
+                <button id="btn-reset-event" onclick="resetEvent()" class="hidden text-sm font-bold bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg transition-colors">
+                    New Event
+                </button>
+            </div>
         </div>
         
         <!-- Navigation Tabs (Hidden initially) -->
         <nav id="nav-tabs" class="hidden bg-white border-b border-slate-200">
-            <div class="max-w-3xl mx-auto flex">
-                <button onclick="switchTab('players')" id="tab-players" class="flex-1 py-3 text-sm font-semibold transition-colors tab-active">Players</button>
-                <button onclick="switchTab('matches')" id="tab-matches" class="flex-1 py-3 text-sm font-semibold transition-colors tab-inactive">Matches</button>
-                <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="flex-1 py-3 text-sm font-semibold transition-colors tab-inactive">Standings</button>
+            <div class="max-w-3xl mx-auto flex overflow-x-auto">
+                <button onclick="switchTab('players')" id="tab-players" class="flex-1 py-3 text-sm font-semibold transition-colors tab-active whitespace-nowrap px-2">Players</button>
+                <button onclick="switchTab('matches')" id="tab-matches" class="flex-1 py-3 text-sm font-semibold transition-colors tab-inactive whitespace-nowrap px-2">Matches</button>
+                <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="flex-1 py-3 text-sm font-semibold transition-colors tab-inactive whitespace-nowrap px-2">Standings</button>
             </div>
         </nav>
     </header>
@@ -43,9 +49,11 @@
     <!-- Main Content Area -->
     <main class="flex-grow w-full max-w-3xl mx-auto p-4 sm:p-6 pb-24">
 
-        <!-- VIEW: SETUP -->
+        <!-- VIEW: SETUP & HISTORY -->
         <section id="view-setup" class="block animate-[fadeIn_0.3s]">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+            
+            <!-- Create Event Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-6">
                 <h2 class="text-2xl font-bold text-slate-800 mb-2">Create Event</h2>
                 <p class="text-slate-500 mb-6 text-sm">Set up your courts and scoring rules to begin.</p>
                 
@@ -77,9 +85,19 @@
                         <input type="number" id="setup-custom-points" min="1" value="21" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none">
                     </div>
                     
-                    <button onclick="startEvent()" class="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-sm transition-colors text-lg">
-                        Start Event
+                    <button onclick="startEvent()" class="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-sm transition-colors text-lg flex items-center justify-center gap-2">
+                        Start Multiplayer Event
                     </button>
+                </div>
+            </div>
+
+            <!-- Past Tournaments History Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">📂 My Previous Tournaments</h2>
+                <div class="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                    <ul id="history-list" class="divide-y divide-slate-200">
+                        <!-- History injected here -->
+                    </ul>
                 </div>
             </div>
         </section>
@@ -135,7 +153,14 @@
         <!-- VIEW: LEADERBOARD -->
         <section id="view-leaderboard" class="hidden animate-[fadeIn_0.3s]">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="bg-slate-900 p-6 text-center text-white">
+                <div class="bg-slate-900 p-6 text-center text-white relative">
+                    <div class="absolute top-4 right-4 flex items-center gap-1 text-emerald-400 text-xs font-bold">
+                        <span class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </span>
+                        LIVE
+                    </div>
                     <h2 class="text-2xl font-black uppercase tracking-widest">Standings</h2>
                     <p id="leaderboard-subtitle" class="text-emerald-400 text-sm font-medium mt-1">Race to 32 points per match</p>
                 </div>
@@ -165,28 +190,127 @@
         Message
     </div>
 
-    <script>
+    <!-- MAIN LOGIC (Firebase + Logic) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // --- APP STATE ---
-        let config = {
-            format: 'standard',
-            courts: 2,
-            targetPoints: 32,
-            isUnlimited: false,
-            isStarted: false
-        };
-        
+        let config = { format: 'standard', courts: 2, targetPoints: 32, isUnlimited: false, isStarted: false };
         let players = [];
         let rounds = [];
         let currentTab = 'players';
 
-        // --- STATE MANAGEMENT ---
-        function saveState() {
-            if (!config.isStarted) return;
-            const state = { config, players, rounds, currentTab };
-            localStorage.setItem('padel_americano_state', JSON.stringify(state));
+        // --- FIREBASE SETUP ---
+        let db, auth, currentUser;
+        let isMultiplayerEnabled = false;
+        let isSyncing = false; // Prevents saving when receiving data
+        let unsubscribeSnapshot = null;
+        
+        // Check URL for existing tournament
+        let tournamentId = new URLSearchParams(window.location.search).get('t');
+
+        // Fallback generator if needed
+        function generateId() { return Math.random().toString(36).substr(2, 9); }
+
+        if (typeof __firebase_config !== 'undefined') {
+            const firebaseConfig = JSON.parse(__firebase_config);
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            isMultiplayerEnabled = true;
+
+            const initAuth = async () => {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            };
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    initTournamentSync();
+                }
+            });
+
+            initAuth();
+        } else {
+            console.warn("Firebase config missing. Running locally without multiplayer.");
+            loadLocalState(); // Fallback to original local storage method
+            renderHistory();
         }
 
-        function loadState() {
+        // --- CLOUD SYNC LOGIC ---
+        function getDocRef() {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            return doc(collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), tournamentId);
+        }
+
+        function initTournamentSync() {
+            if (tournamentId) {
+                // Joining existing tournament
+                unsubscribeSnapshot = onSnapshot(getDocRef(), (snapshot) => {
+                    if (snapshot.exists()) {
+                        isSyncing = true;
+                        const state = snapshot.data();
+                        config = state.config || config;
+                        players = state.players || [];
+                        rounds = state.rounds || [];
+                        
+                        if (config.isStarted) {
+                            document.getElementById('nav-tabs').classList.remove('hidden');
+                            document.getElementById('btn-reset-event').classList.remove('hidden');
+                            document.getElementById('btn-share-event').classList.remove('hidden');
+                            
+                            const subtitle = document.getElementById('leaderboard-subtitle');
+                            if (config.isUnlimited) subtitle.innerText = `Unlimited Points - Play out matches`;
+                            else subtitle.innerText = `Race to ${config.targetPoints} points per match`;
+                            
+                            if (config.format === 'mixed') {
+                                document.getElementById('new-player-gender').classList.remove('hidden');
+                            }
+                            
+                            renderPlayers();
+                            window.switchTab(state.currentTab || currentTab);
+                        }
+                        isSyncing = false;
+                    } else {
+                        showToast("Tournament not found. Starting new.");
+                        tournamentId = generateId() + generateId();
+                        window.history.replaceState(null, '', '?t=' + tournamentId);
+                    }
+                }, (error) => {
+                    console.error("Sync error:", error);
+                });
+            } else {
+                // Creating new tournament
+                tournamentId = generateId() + generateId();
+                window.history.replaceState(null, '', '?t=' + tournamentId);
+            }
+            renderHistory();
+        }
+
+        async function saveState() {
+            if (isSyncing || !config.isStarted) return;
+            
+            if (isMultiplayerEnabled && currentUser && tournamentId) {
+                try {
+                    const state = { config, players, rounds, currentTab, updatedAt: Date.now() };
+                    await setDoc(getDocRef(), state, { merge: true });
+                } catch (e) {
+                    console.error("Cloud save failed", e);
+                }
+            } else {
+                // Local fallback
+                const state = { config, players, rounds, currentTab };
+                localStorage.setItem('padel_americano_state', JSON.stringify(state));
+            }
+        }
+
+        function loadLocalState() {
             const saved = localStorage.getItem('padel_americano_state');
             if (saved) {
                 const state = JSON.parse(saved);
@@ -199,34 +323,121 @@
                     document.getElementById('btn-reset-event').classList.remove('hidden');
                     
                     const subtitle = document.getElementById('leaderboard-subtitle');
-                    if (config.isUnlimited) {
-                        subtitle.innerText = `Unlimited Points - Play out matches`;
-                    } else {
-                        subtitle.innerText = `Race to ${config.targetPoints} points per match`;
-                    }
+                    if (config.isUnlimited) subtitle.innerText = `Unlimited Points - Play out matches`;
+                    else subtitle.innerText = `Race to ${config.targetPoints} points per match`;
                     
-                    if (config.format === 'mixed') {
-                        document.getElementById('new-player-gender').classList.remove('hidden');
-                    }
+                    if (config.format === 'mixed') document.getElementById('new-player-gender').classList.remove('hidden');
                     
                     renderPlayers();
-                    switchTab(state.currentTab || 'players');
+                    window.switchTab(state.currentTab || 'players');
                 }
             }
         }
 
-        function resetEvent() {
-            if(confirm("Are you sure you want to reset all progress and start a new tournament?")) {
-                localStorage.removeItem('padel_americano_state');
-                location.reload();
+        // --- SHARE & HISTORY ---
+        window.copyShareLink = function() {
+            const url = window.location.href;
+            
+            // Clipboard API fallback for standard browsers/iframes
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast("Share link copied to clipboard!");
+                });
+            } else {
+                const tempInput = document.createElement('input');
+                tempInput.value = url;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                try {
+                    document.execCommand('copy');
+                    showToast("Share link copied to clipboard!");
+                } catch (err) {
+                    showToast("Error copying link.");
+                }
+                document.body.removeChild(tempInput);
             }
         }
 
-        window.addEventListener('DOMContentLoaded', loadState);
+        function saveToHistory() {
+            let history = JSON.parse(localStorage.getItem('padel_americano_history') || '[]');
+            const sorted = [...players].sort((a, b) => {
+                if (b.points !== a.points) return b.points - a.points;
+                return b.diff - a.diff; 
+            });
 
-        // --- CORE LOGIC ---
+            let podiumText = "<span class='text-slate-500 italic'>No matches played</span>";
+            if (sorted.length > 0 && sorted[0].played > 0) {
+                podiumText = `🥇 ${sorted[0].name} <span class="text-slate-400">(${sorted[0].points} pts)</span>`;
+                if (sorted.length > 1 && sorted[1].played > 0) podiumText += `<br>🥈 ${sorted[1].name} <span class="text-slate-400">(${sorted[1].points} pts)</span>`;
+                if (sorted.length > 2 && sorted[2].played > 0) podiumText += `<br>🥉 ${sorted[2].name} <span class="text-slate-400">(${sorted[2].points} pts)</span>`;
+            }
 
-        function toggleCustomPoints() {
+            const eventData = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + ' - ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                format: config.format === 'mixed' ? 'Mixed Americano' : 'Standard Americano',
+                rounds: rounds.length,
+                players: players.length,
+                winners: podiumText
+            };
+            
+            history.unshift(eventData);
+            localStorage.setItem('padel_americano_history', JSON.stringify(history));
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            const history = JSON.parse(localStorage.getItem('padel_americano_history') || '[]');
+            
+            if (history.length === 0) {
+                list.innerHTML = `<li class="p-6 text-center text-slate-400 font-medium text-sm">No previous tournaments found. Finish an event to save it here!</li>`;
+                return;
+            }
+
+            list.innerHTML = '';
+            history.forEach(ev => {
+                list.innerHTML += `
+                    <li class="p-4 bg-white hover:bg-slate-50 transition-colors flex justify-between items-start gap-4">
+                        <div class="flex-grow">
+                            <div class="font-bold text-slate-800">${ev.date}</div>
+                            <div class="text-sm font-medium text-slate-600">${ev.format}</div>
+                            <div class="text-xs text-slate-400 mt-1 mb-3">${ev.players} Players | ${ev.rounds} Rounds Played</div>
+                            <div class="text-sm font-bold text-slate-800 leading-snug bg-amber-50 border border-amber-100 p-3 rounded-lg inline-block">
+                                ${ev.winners}
+                            </div>
+                        </div>
+                        <button onclick="deleteHistoryItem(${ev.id})" class="text-slate-300 hover:text-red-500 p-2 rounded-lg transition-colors" title="Delete record">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </li>
+                `;
+            });
+        }
+
+        window.deleteHistoryItem = function(id) {
+            if(confirm("Delete this past tournament record?")) {
+                let history = JSON.parse(localStorage.getItem('padel_americano_history') || '[]');
+                history = history.filter(h => h.id !== id);
+                localStorage.setItem('padel_americano_history', JSON.stringify(history));
+                renderHistory();
+            }
+        }
+
+        window.resetEvent = function() {
+            if(confirm("Are you sure you want to end this tournament? It will be saved to your History.")) {
+                if (rounds.length > 0) {
+                    updateLeaderboardStats();
+                    saveToHistory();
+                }
+                
+                // Clear URL param to start fresh
+                window.location.href = window.location.pathname;
+            }
+        }
+
+        // --- CORE EVENT LOGIC (Attached to window for HTML access) ---
+
+        window.toggleCustomPoints = function() {
             const val = document.getElementById('setup-points').value;
             const container = document.getElementById('custom-points-container');
             if (val === 'custom') {
@@ -236,7 +447,7 @@
             }
         }
 
-        function startEvent() {
+        window.startEvent = function() {
             config.format = document.getElementById('setup-format').value;
             config.courts = parseInt(document.getElementById('setup-courts').value) || 1;
             const ptsVal = document.getElementById('setup-points').value;
@@ -254,17 +465,14 @@
             config.isStarted = true;
             
             const subtitle = document.getElementById('leaderboard-subtitle');
-            if (config.isUnlimited) {
-                subtitle.innerText = `Unlimited Points - Play out matches`;
-            } else {
-                subtitle.innerText = `Race to ${config.targetPoints} points per match`;
-            }
+            if (config.isUnlimited) subtitle.innerText = `Unlimited Points - Play out matches`;
+            else subtitle.innerText = `Race to ${config.targetPoints} points per match`;
             
             document.getElementById('nav-tabs').classList.remove('hidden');
+            document.getElementById('btn-reset-event').classList.remove('hidden');
+            document.getElementById('btn-share-event').classList.remove('hidden');
             
-            if (config.format === 'mixed') {
-                document.getElementById('new-player-gender').classList.remove('hidden');
-            }
+            if (config.format === 'mixed') document.getElementById('new-player-gender').classList.remove('hidden');
             
             if(players.length === 0) {
                 const dummyNames = ['Ibrahim', 'Muhammad', 'Saeed', 'Ali', 'Zain', 'Omar', 'Tariq', 'Hassan'];
@@ -273,15 +481,13 @@
                 }
             }
             
-            document.getElementById('btn-reset-event').classList.remove('hidden');
             saveState();
-            
             renderPlayers();
-            switchTab('players');
+            window.switchTab('players');
             showToast("Event Started! Check the roster.");
         }
 
-        function addPlayer() {
+        window.addPlayer = function() {
             const input = document.getElementById('new-player-name');
             const genderInput = document.getElementById('new-player-gender');
             const name = input.value.trim();
@@ -292,30 +498,23 @@
             
             saveState();
             renderPlayers();
-            
-            if (rounds.length > 0) {
-                showToast(`${name} added! They will join the next round.`);
-            }
+            if (rounds.length > 0) showToast(`${name} added! They will join the next round.`);
         }
 
-        function togglePlayerStatus(id) {
-            // Check if player has played any matches
+        window.togglePlayerStatus = function(id) {
             const hasPlayed = rounds.some(r => r.matches.some(m => m.team1.includes(id) || m.team2.includes(id)));
             const player = players.find(p => p.id === id);
             
             if (hasPlayed) {
-                // If they have played, toggle active/withdrawn state to not ruin old scores
                 player.active = !player.active;
                 showToast(`${player.name} marked as ${player.active ? 'Active' : 'Withdrawn'}.`);
             } else {
-                // If they haven't played, we can safely delete them entirely
                 players = players.filter(p => p.id !== id);
             }
             
             saveState();
             renderPlayers();
             
-            // Re-evaluate if we need to block the tournament generator
             if (rounds.length > 0 && players.filter(p => p.active).length < 4) {
                 showToast("Warning: Not enough active players to generate rounds.");
             }
@@ -333,15 +532,13 @@
                     ? `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`
                     : `<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>`;
                 
-                const titleAttr = p.active ? "Remove / Withdraw" : "Restore Player";
-
                 li.innerHTML = `
                     <div class="flex items-center gap-3">
                         <span class="font-bold text-slate-800 ${!p.active ? 'line-through text-slate-500' : ''}">${p.name}</span>
                         ${config.format === 'mixed' ? `<span class="text-xs font-bold px-2 py-1 rounded-full ${p.gender === 'M' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}">${p.gender}</span>` : ''}
                         ${!p.active ? `<span class="text-xs font-bold px-2 py-1 rounded-full bg-slate-200 text-slate-600">Withdrawn</span>` : ''}
                     </div>
-                    <button onclick="togglePlayerStatus('${p.id}')" title="${titleAttr}" class="p-2 rounded-lg transition-colors ${p.active ? 'hover:bg-red-50' : 'hover:bg-emerald-50 bg-emerald-100'}">
+                    <button onclick="togglePlayerStatus('${p.id}')" title="Remove" class="p-2 rounded-lg transition-colors ${p.active ? 'hover:bg-red-50' : 'hover:bg-emerald-50 bg-emerald-100'}">
                         ${actionIcon}
                     </button>
                 `;
@@ -351,7 +548,6 @@
             const statusMsg = document.getElementById('player-status-message');
             const btnGenerateFirst = document.getElementById('btn-generate-first');
             const required = config.courts * 4;
-            
             const activePlayers = players.filter(p => p.active);
             let canStart = false;
             let msg = '';
@@ -365,9 +561,8 @@
                 } else {
                     let pairs = Math.min(men, women);
                     let validPlayers = (pairs % 2 === 0 ? pairs : pairs - 1) * 2;
-                    if (validPlayers < 4) {
-                        msg = `You need an even number of mixed pairs to form matches. Add more players.`;
-                    } else {
+                    if (validPlayers < 4) msg = `You need an even number of mixed pairs to form matches. Add more players.`;
+                    else {
                         canStart = true;
                         msg = `You have <strong>${men}M and ${women}F active</strong>. ${validPlayers} players can be matched. `;
                         if (validPlayers > required) msg += `Some will rest.`;
@@ -441,9 +636,7 @@
                     if (!used[p2Idx]) {
                         const p2Obj = playersToPair[p2Idx];
                         
-                        if (config.format === 'mixed' && p1Obj.gender === p2Obj.gender) {
-                            continue;
-                        }
+                        if (config.format === 'mixed' && p1Obj.gender === p2Obj.gender) continue;
 
                         const p2 = p2Obj.id;
                         const pairKey = [p1, p2].sort().join('-');
@@ -451,9 +644,7 @@
                         if (!pastPartners.has(pairKey)) {
                             used[p2Idx] = true;
                             pairs.push([p1, p2]);
-                            
                             if (backtrack(count + 2)) return true;
-                            
                             pairs.pop();
                             used[p2Idx] = false;
                         }
@@ -462,18 +653,13 @@
                 used[p1Idx] = false;
                 return false;
             }
-            
             return backtrack(0) ? pairs : null;
         }
 
-        function generateRound() {
+        window.generateRound = function() {
             updateLeaderboardStats(); 
-            
-            // Only consider ACTIVE players for generating the round
             const activePlayers = players.filter(p => p.active);
             
-            // Calculate scheduled matches (including unlocked) to ensure perfect balancing
-            // even if the user generates multiple rounds ahead of time without locking scores.
             const scheduledCounts = {};
             activePlayers.forEach(p => scheduledCounts[p.id] = 0);
             rounds.forEach(r => {
@@ -483,8 +669,7 @@
                 });
             });
             
-            let finalPlaying = [];
-            let resting = [];
+            let finalPlaying = [], resting = [];
             
             if (config.format === 'mixed') {
                 let men = activePlayers.filter(p => p.gender === 'M').sort((a, b) => scheduledCounts[a.id] - scheduledCounts[b.id]);
@@ -514,9 +699,7 @@
             if (!pairings) {
                 let found = false;
                 for (let attempt = 0; attempt < 100; attempt++) {
-                    let attemptPlaying = [];
-                    let attemptResting = [];
-                    
+                    let attemptPlaying = [], attemptResting = [];
                     if (config.format === 'mixed') {
                         let men = activePlayers.filter(p => p.gender === 'M').sort((a, b) => (scheduledCounts[a.id] - scheduledCounts[b.id]) + (Math.random() * 0.5 - 0.25));
                         let women = activePlayers.filter(p => p.gender === 'F').sort((a, b) => (scheduledCounts[a.id] - scheduledCounts[b.id]) + (Math.random() * 0.5 - 0.25));
@@ -537,13 +720,8 @@
                     }
                     
                     let attemptPairings = findValidPairings(attemptPlaying, pastPartners);
-                    
                     if (attemptPairings) {
-                        finalPlaying = attemptPlaying;
-                        resting = attemptResting;
-                        pairings = attemptPairings;
-                        found = true;
-                        break;
+                        finalPlaying = attemptPlaying; resting = attemptResting; pairings = attemptPairings; found = true; break;
                     }
                 }
                 
@@ -564,28 +742,14 @@
             let courtNum = 1;
             
             for (let i = 0; i < pairings.length; i += 2) {
-                newMatches.push({
-                    id: generateId(),
-                    court: courtNum++,
-                    team1: pairings[i],
-                    team2: pairings[i+1],
-                    score1: '',
-                    score2: '',
-                    locked: false
-                });
+                newMatches.push({ id: generateId(), court: courtNum++, team1: pairings[i], team2: pairings[i+1], score1: '', score2: '', locked: false });
             }
 
-            rounds.push({
-                roundNum: rounds.length + 1,
-                matches: newMatches,
-                resting: resting.map(p => p.id)
-            });
-
+            rounds.push({ roundNum: rounds.length + 1, matches: newMatches, resting: resting.map(p => p.id) });
             saveState();
             renderMatches();
-            switchTab('matches');
+            window.switchTab('matches');
             showToast(`Round ${rounds.length} Generated!`);
-            
             document.getElementById('btn-generate-first').classList.add('hidden');
         }
 
@@ -595,7 +759,6 @@
             
             [...rounds].reverse().forEach((round, revIndex) => {
                 const isLatest = revIndex === 0;
-                
                 let roundHtml = `
                     <div class="bg-white rounded-2xl shadow-sm border ${isLatest ? 'border-emerald-400 ring-2 ring-emerald-100' : 'border-slate-200 opacity-80'} overflow-hidden">
                         <div class="${isLatest ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-700'} p-4 flex justify-between items-center">
@@ -619,44 +782,28 @@
                     roundHtml += `
                         <div class="border rounded-xl p-4 ${isLocked ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-200'}">
                             <div class="text-xs font-bold text-slate-400 mb-3 tracking-widest uppercase">Court ${match.court}</div>
-                            
                             <div class="flex justify-between items-center mb-3">
-                                <div class="leading-tight">
-                                    <div class="font-bold text-slate-800">${p1}</div>
-                                    <div class="font-bold text-slate-800">${p2}</div>
-                                </div>
-                                <div>
-                                    <input type="number" min="0" onchange="updateScore(${round.roundNum}, '${match.id}', 1, this.value)" value="${match.score1}" ${isLocked ? 'disabled' : ''} class="${inputClass}" placeholder="0">
-                                </div>
+                                <div class="leading-tight"><div class="font-bold text-slate-800">${p1}</div><div class="font-bold text-slate-800">${p2}</div></div>
+                                <div><input type="number" min="0" onchange="updateScore(${round.roundNum}, '${match.id}', 1, this.value)" value="${match.score1}" ${isLocked ? 'disabled' : ''} class="${inputClass}" placeholder="0"></div>
                             </div>
-                            
                             <div class="w-full h-px bg-slate-100 my-2"></div>
-                            
                             <div class="flex justify-between items-center mt-3">
-                                <div class="leading-tight">
-                                    <div class="font-bold text-slate-800">${p3}</div>
-                                    <div class="font-bold text-slate-800">${p4}</div>
-                                </div>
-                                <div>
-                                    <input type="number" min="0" onchange="updateScore(${round.roundNum}, '${match.id}', 2, this.value)" value="${match.score2}" ${isLocked ? 'disabled' : ''} class="${inputClass}" placeholder="0">
-                                </div>
+                                <div class="leading-tight"><div class="font-bold text-slate-800">${p3}</div><div class="font-bold text-slate-800">${p4}</div></div>
+                                <div><input type="number" min="0" onchange="updateScore(${round.roundNum}, '${match.id}', 2, this.value)" value="${match.score2}" ${isLocked ? 'disabled' : ''} class="${inputClass}" placeholder="0"></div>
                             </div>
-                            
                             <button onclick="toggleMatchLock(${round.roundNum}, '${match.id}')" class="w-full mt-4 py-2 rounded-lg font-bold text-sm transition-colors ${isLocked ? 'bg-slate-200 text-slate-600 hover:bg-slate-300' : 'bg-slate-900 text-white hover:bg-slate-800'}">
                                 ${isLocked ? 'Unlock & Edit Match' : 'Save & Lock Score'}
                             </button>
                         </div>
                     `;
                 });
-
                 roundHtml += `</div></div>`;
                 container.innerHTML += roundHtml;
             });
-            
             checkRoundComplete();
         }
 
-        function updateScore(roundNum, matchId, team, value) {
+        window.updateScore = function(roundNum, matchId, team, value) {
             const round = rounds.find(r => r.roundNum === roundNum);
             const match = round.matches.find(m => m.id === matchId);
             if(team === 1) match.score1 = value;
@@ -664,7 +811,7 @@
             saveState();
         }
 
-        function toggleMatchLock(roundNum, matchId) {
+        window.toggleMatchLock = function(roundNum, matchId) {
             const round = rounds.find(r => r.roundNum === roundNum);
             const match = round.matches.find(m => m.id === matchId);
             
@@ -674,7 +821,6 @@
             }
             
             match.locked = !match.locked;
-            
             saveState();
             updateLeaderboardStats();
             renderMatches();
@@ -682,8 +828,6 @@
 
         function checkRoundComplete() {
             if (rounds.length === 0) return;
-            
-            // Check if ALL matches in ALL rounds are locked before allowing the next round
             const allMatchesLocked = rounds.every(r => r.matches.every(m => m.locked));
             const btnNext = document.getElementById('btn-generate-next');
             
@@ -697,37 +841,18 @@
         }
 
         function updateLeaderboardStats() {
-            players.forEach(p => {
-                p.points = 0; p.conceded = 0; p.diff = 0; p.played = 0;
-            });
-
+            players.forEach(p => { p.points = 0; p.conceded = 0; p.diff = 0; p.played = 0; });
             rounds.forEach(round => {
                 round.matches.forEach(match => {
                     if (match.locked) {
                         const s1 = parseInt(match.score1) || 0;
                         const s2 = parseInt(match.score2) || 0;
-
-                        match.team1.forEach(id => {
-                            let p = getPlayer(id);
-                            p.points += s1;
-                            p.conceded += s2;
-                            p.played += 1;
-                        });
-                        
-                        match.team2.forEach(id => {
-                            let p = getPlayer(id);
-                            p.points += s2;
-                            p.conceded += s1;
-                            p.played += 1;
-                        });
+                        match.team1.forEach(id => { let p = getPlayer(id); p.points += s1; p.conceded += s2; p.played += 1; });
+                        match.team2.forEach(id => { let p = getPlayer(id); p.points += s2; p.conceded += s1; p.played += 1; });
                     }
                 });
             });
-            
-            players.forEach(p => {
-                p.diff = p.points - p.conceded;
-            });
-            
+            players.forEach(p => p.diff = p.points - p.conceded);
             renderLeaderboard();
         }
 
@@ -748,51 +873,30 @@
                 if (index > 0 && p.played > 0) {
                     const gap = (sortedPlayers[index - 1].points || 0) - (p.points || 0);
                     gapToAbove = `-${gap}`;
-                } else if (index > 0) {
-                    gapToAbove = '0';
-                }
+                } else if (index > 0) gapToAbove = '0';
                 
                 row.innerHTML = `
-                    <td class="p-4 text-center font-black text-slate-400">
-                        ${index === 0 && p.played > 0 ? '<span class="text-amber-500 text-lg">1</span>' : index + 1}
-                    </td>
+                    <td class="p-4 text-center font-black text-slate-400">${index === 0 && p.played > 0 ? '<span class="text-amber-500 text-lg">1</span>' : index + 1}</td>
                     <td class="p-4 font-bold text-slate-800">
                         <span class="${!p.active ? 'line-through text-slate-400' : ''}">${p.name}</span>
                         ${index === 0 && p.played > 0 && p.active ? '<span class="ml-1 text-amber-500">👑</span>' : ''}
                         ${!p.active ? '<span class="text-xs ml-2 bg-slate-200 text-slate-500 px-2 py-0.5 rounded">Withdrawn</span>' : ''}
                     </td>
-                    <td class="p-4 text-center">
-                        <span class="bg-emerald-100 text-emerald-800 py-1 px-3 rounded-full font-black text-base border border-emerald-200">
-                            ${p.points || 0}
-                        </span>
-                    </td>
-                    <td class="p-4 text-center text-slate-500 font-medium text-sm">
-                        ${gapToAbove}
-                    </td>
-                    <td class="p-4 text-center text-slate-400 text-sm">
-                        ${p.played || 0}
-                    </td>
+                    <td class="p-4 text-center"><span class="bg-emerald-100 text-emerald-800 py-1 px-3 rounded-full font-black text-base border border-emerald-200">${p.points || 0}</span></td>
+                    <td class="p-4 text-center text-slate-500 font-medium text-sm">${gapToAbove}</td>
+                    <td class="p-4 text-center text-slate-400 text-sm">${p.played || 0}</td>
                 `;
                 tbody.appendChild(row);
             });
         }
 
-        // --- UTILS ---
-        function switchTab(tab) {
-            ['setup', 'players', 'matches', 'leaderboard'].forEach(t => {
-                document.getElementById(`view-${t}`).classList.add('hidden');
-            });
+        window.switchTab = function(tab) {
+            ['setup', 'players', 'matches', 'leaderboard'].forEach(t => document.getElementById(`view-${t}`).classList.add('hidden'));
             ['players', 'matches', 'leaderboard'].forEach(t => {
                 const el = document.getElementById(`tab-${t}`);
-                if(el) {
-                    el.className = t === tab 
-                        ? 'flex-1 py-3 text-sm font-semibold transition-colors tab-active' 
-                        : 'flex-1 py-3 text-sm font-semibold transition-colors tab-inactive';
-                }
+                if(el) el.className = t === tab ? 'flex-1 py-3 text-sm font-semibold transition-colors tab-active whitespace-nowrap px-2' : 'flex-1 py-3 text-sm font-semibold transition-colors tab-inactive whitespace-nowrap px-2';
             });
-
             document.getElementById(`view-${tab}`).classList.remove('hidden');
-            
             currentTab = tab;
             saveState();
             
@@ -800,21 +904,13 @@
             if(tab === 'matches') renderMatches();
         }
 
-        function getPlayer(id) {
-            return players.find(p => p.id === id) || { name: 'Unknown', active: false };
-        }
-
-        function generateId() {
-            return Math.random().toString(36).substr(2, 9);
-        }
+        function getPlayer(id) { return players.find(p => p.id === id) || { name: 'Unknown', active: false }; }
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
             toast.innerText = msg;
             toast.classList.remove('opacity-0', 'translate-y-4');
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-4');
-            }, 3000);
+            setTimeout(() => toast.classList.add('opacity-0', 'translate-y-4'), 3000);
         }
 
     </script>
