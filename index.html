@@ -86,7 +86,7 @@
                     </div>
                     
                     <button onclick="startEvent()" class="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-sm transition-colors text-lg flex items-center justify-center gap-2">
-                        Start Multiplayer Event
+                        Start Event
                     </button>
                 </div>
             </div>
@@ -190,69 +190,83 @@
         Message
     </div>
 
-    <!-- MAIN LOGIC (Firebase + Logic) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <!-- MAIN LOGIC -->
+    <script>
         // --- APP STATE ---
         let config = { format: 'standard', courts: 2, targetPoints: 32, isUnlimited: false, isStarted: false };
         let players = [];
         let rounds = [];
         let currentTab = 'players';
 
-        // --- FIREBASE SETUP ---
-        let db, auth, currentUser;
+        // --- FIREBASE / SYNC SETUP ---
+        let db, auth, currentUser, fsMod;
         let isMultiplayerEnabled = false;
-        let isSyncing = false; // Prevents saving when receiving data
+        let isSyncing = false; 
         let unsubscribeSnapshot = null;
-        
-        // Check URL for existing tournament
         let tournamentId = new URLSearchParams(window.location.search).get('t');
 
-        // Fallback generator if needed
         function generateId() { return Math.random().toString(36).substr(2, 9); }
 
-        if (typeof __firebase_config !== 'undefined') {
-            const firebaseConfig = JSON.parse(__firebase_config);
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            isMultiplayerEnabled = true;
+        function initApp() {
+            // Dynamic import to prevent CORS blocking issues on Vercel/Local files
+            if (typeof __firebase_config !== 'undefined') {
+                isMultiplayerEnabled = true;
+                const firebaseConfig = JSON.parse(__firebase_config);
+                
+                Promise.all([
+                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"),
+                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"),
+                    import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js")
+                ]).then(([appModule, authModule, firestoreModule]) => {
+                    fsMod = firestoreModule;
+                    const app = appModule.initializeApp(firebaseConfig);
+                    auth = authModule.getAuth(app);
+                    db = firestoreModule.getFirestore(app);
 
-            const initAuth = async () => {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            };
+                    const initAuth = async () => {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await authModule.signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await authModule.signInAnonymously(auth);
+                        }
+                    };
 
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    currentUser = user;
-                    initTournamentSync();
-                }
-            });
+                    authModule.onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            currentUser = user;
+                            initTournamentSync();
+                        }
+                    });
 
-            initAuth();
+                    initAuth();
+                }).catch(err => {
+                    console.warn("Failed to load cloud database. Running in local mode.");
+                    loadLocalState();
+                    renderHistory();
+                });
+            } else {
+                console.warn("Running locally without database. Progress saves to this device only.");
+                loadLocalState();
+                renderHistory();
+            }
+        }
+
+        // Run Initialization Safely
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
         } else {
-            console.warn("Firebase config missing. Running locally without multiplayer.");
-            loadLocalState(); // Fallback to original local storage method
-            renderHistory();
+            initApp();
         }
 
         // --- CLOUD SYNC LOGIC ---
         function getDocRef() {
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            return doc(collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), tournamentId);
+            return fsMod.doc(fsMod.collection(db, 'artifacts', appId, 'public', 'data', 'tournaments'), tournamentId);
         }
 
         function initTournamentSync() {
             if (tournamentId) {
-                // Joining existing tournament
-                unsubscribeSnapshot = onSnapshot(getDocRef(), (snapshot) => {
+                unsubscribeSnapshot = fsMod.onSnapshot(getDocRef(), (snapshot) => {
                     if (snapshot.exists()) {
                         isSyncing = true;
                         const state = snapshot.data();
@@ -274,37 +288,47 @@
                             }
                             
                             renderPlayers();
-                            window.switchTab(state.currentTab || currentTab);
+                            switchTab(state.currentTab || currentTab);
                         }
                         isSyncing = false;
                     } else {
                         showToast("Tournament not found. Starting new.");
                         tournamentId = generateId() + generateId();
-                        window.history.replaceState(null, '', '?t=' + tournamentId);
+                        updateUrl(tournamentId);
                     }
                 }, (error) => {
                     console.error("Sync error:", error);
                 });
             } else {
-                // Creating new tournament
                 tournamentId = generateId() + generateId();
-                window.history.replaceState(null, '', '?t=' + tournamentId);
+                updateUrl(tournamentId);
             }
             renderHistory();
+        }
+
+        function updateUrl(id) {
+            try {
+                if (window.location.protocol === 'blob:' || window.location.protocol === 'file:') return;
+                const newUrl = new URL(window.location.href);
+                if (id) newUrl.searchParams.set('t', id);
+                else newUrl.searchParams.delete('t');
+                window.history.replaceState(null, '', newUrl.toString());
+            } catch(e) {
+                console.warn("URL update blocked by browser sandbox.");
+            }
         }
 
         async function saveState() {
             if (isSyncing || !config.isStarted) return;
             
-            if (isMultiplayerEnabled && currentUser && tournamentId) {
+            if (isMultiplayerEnabled && currentUser && tournamentId && fsMod) {
                 try {
                     const state = { config, players, rounds, currentTab, updatedAt: Date.now() };
-                    await setDoc(getDocRef(), state, { merge: true });
+                    await fsMod.setDoc(getDocRef(), state, { merge: true });
                 } catch (e) {
                     console.error("Cloud save failed", e);
                 }
             } else {
-                // Local fallback
                 const state = { config, players, rounds, currentTab };
                 localStorage.setItem('padel_americano_state', JSON.stringify(state));
             }
@@ -329,16 +353,24 @@
                     if (config.format === 'mixed') document.getElementById('new-player-gender').classList.remove('hidden');
                     
                     renderPlayers();
-                    window.switchTab(state.currentTab || 'players');
+                    switchTab(state.currentTab || 'players');
                 }
             }
         }
 
         // --- SHARE & HISTORY ---
-        window.copyShareLink = function() {
-            const url = window.location.href;
+        function copyShareLink() {
+            let url = window.location.href.split('?')[0];
             
-            // Clipboard API fallback for standard browsers/iframes
+            if (url.startsWith('blob:')) {
+                showToast("Cannot copy share link in preview mode. Please publish the site first.");
+                return;
+            }
+            
+            if (tournamentId) {
+                url += '?t=' + tournamentId;
+            }
+            
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(url).then(() => {
                     showToast("Share link copied to clipboard!");
@@ -430,14 +462,43 @@
                     saveToHistory();
                 }
                 
-                // Clear URL param to start fresh
-                window.location.href = window.location.pathname;
+                localStorage.removeItem('padel_americano_state');
+                
+                // Soft Reset instead of page reload to avoid browser security blocks
+                config = { format: 'standard', courts: 2, targetPoints: 32, isUnlimited: false, isStarted: false };
+                players = [];
+                rounds = [];
+                currentTab = 'players';
+
+                document.getElementById('nav-tabs').classList.add('hidden');
+                document.getElementById('btn-reset-event').classList.add('hidden');
+                document.getElementById('btn-share-event').classList.add('hidden');
+
+                ['players', 'matches', 'leaderboard'].forEach(t => document.getElementById(`view-${t}`).classList.add('hidden'));
+                document.getElementById('view-setup').classList.remove('hidden');
+
+                renderHistory();
+
+                if (unsubscribeSnapshot) {
+                    unsubscribeSnapshot();
+                    unsubscribeSnapshot = null;
+                }
+                isSyncing = false;
+                
+                tournamentId = generateId() + generateId();
+                updateUrl(tournamentId);
+                
+                if (isMultiplayerEnabled && currentUser) {
+                    initTournamentSync();
+                }
+                
+                showToast("Tournament ended and saved to history!");
             }
         }
 
-        // --- CORE EVENT LOGIC (Attached to window for HTML access) ---
+        // --- CORE EVENT LOGIC ---
 
-        window.toggleCustomPoints = function() {
+        function toggleCustomPoints() {
             const val = document.getElementById('setup-points').value;
             const container = document.getElementById('custom-points-container');
             if (val === 'custom') {
@@ -447,7 +508,7 @@
             }
         }
 
-        window.startEvent = function() {
+        function startEvent() {
             config.format = document.getElementById('setup-format').value;
             config.courts = parseInt(document.getElementById('setup-courts').value) || 1;
             const ptsVal = document.getElementById('setup-points').value;
@@ -477,17 +538,17 @@
             if(players.length === 0) {
                 const dummyNames = ['Ibrahim', 'Muhammad', 'Saeed', 'Ali', 'Zain', 'Omar', 'Tariq', 'Hassan'];
                 for(let i=0; i < (config.courts * 4); i++) {
-                    players.push({ id: generateId(), name: dummyNames[i] || `Player ${i+1}`, gender: i % 2 === 0 ? 'M' : 'F', active: true });
+                    players.push({ id: generateId(), name: dummyNames[i] || `Player ${i+1}`, gender: i % 2 === 0 ? 'M' : 'F', active: true, played: 0 });
                 }
             }
             
             saveState();
             renderPlayers();
-            window.switchTab('players');
+            switchTab('players');
             showToast("Event Started! Check the roster.");
         }
 
-        window.addPlayer = function() {
+        function addPlayer() {
             const input = document.getElementById('new-player-name');
             const genderInput = document.getElementById('new-player-gender');
             const name = input.value.trim();
@@ -501,7 +562,7 @@
             if (rounds.length > 0) showToast(`${name} added! They will join the next round.`);
         }
 
-        window.togglePlayerStatus = function(id) {
+        function togglePlayerStatus(id) {
             const hasPlayed = rounds.some(r => r.matches.some(m => m.team1.includes(id) || m.team2.includes(id)));
             const player = players.find(p => p.id === id);
             
@@ -656,7 +717,7 @@
             return backtrack(0) ? pairs : null;
         }
 
-        window.generateRound = function() {
+        function generateRound() {
             updateLeaderboardStats(); 
             const activePlayers = players.filter(p => p.active);
             
@@ -748,7 +809,7 @@
             rounds.push({ roundNum: rounds.length + 1, matches: newMatches, resting: resting.map(p => p.id) });
             saveState();
             renderMatches();
-            window.switchTab('matches');
+            switchTab('matches');
             showToast(`Round ${rounds.length} Generated!`);
             document.getElementById('btn-generate-first').classList.add('hidden');
         }
